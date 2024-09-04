@@ -1,22 +1,21 @@
 package com.example.practice3
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Text
 import androidx.compose.ui.unit.sp
-import com.example.practice3.R
+import androidx.compose.material3.Text
+import kotlin.math.abs
 
 class ScrollTextScreen {
     val quotes = listOf(
@@ -52,19 +51,47 @@ class ScrollTextScreen {
         "勇気とは、恐怖に立ち向かう力である。"
     )
 
-
     @Composable
     fun Content() {
-        // 現在の名言のインデックスを管理する
         var currentIndex by remember { mutableStateOf(0) }
+        var nextIndex by remember { mutableStateOf((currentIndex + 1) % quotes.size) }  // 次のインデックス
+        var dragOffset by remember { mutableStateOf(0f) }
+        var scrollDirection by remember { mutableStateOf(0f) }  // スクロールの方向を保存
+        var directionLocked by remember { mutableStateOf(false) }  // 方向が確定したかどうか
+        val screenHeight = 800f  // 仮の画面高さ
 
-        // 画面全体のレイアウト
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable {
-                    // タッチされたときに次の名言へ
-                    currentIndex = (currentIndex + 1) % quotes.size
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            // 指を離したときに次の文字列に切り替え
+                            if (dragOffset > screenHeight / 2) {
+                                // 上にスクロールして次のテキストへ
+                                currentIndex = if (currentIndex > 0) currentIndex - 1 else quotes.size - 1
+                            } else if (dragOffset < -screenHeight / 2) {
+                                // 下にスクロールして次のテキストへ
+                                currentIndex = (currentIndex + 1) % quotes.size
+                            }
+                            dragOffset = 0f  // オフセットをリセット
+                            directionLocked = false  // 方向ロック解除
+                        },
+                        onDrag = { _, dragAmount ->
+                            dragOffset += dragAmount.y  // ドラッグ量をオフセットに反映
+
+                            if (!directionLocked) {
+                                // スクロール方向がまだ決定していない場合、方向を決定
+                                scrollDirection = dragAmount.y
+                                nextIndex = if (scrollDirection > 0) {
+                                    if (currentIndex > 0) currentIndex - 1 else quotes.size - 1
+                                } else {
+                                    (currentIndex + 1) % quotes.size
+                                }
+                                directionLocked = true  // 方向をロック
+                            }
+                        }
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -73,25 +100,38 @@ class ScrollTextScreen {
                 painter = painterResource(id = R.drawable.bg_screen3),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop // 画像をディスプレイ全体に広げる
+                contentScale = ContentScale.Crop
             )
 
-            // 名言のフェードイン表示
-            Crossfade(targetState = currentIndex) { index ->
-                // 影となるテキスト
-                Text(
-                    text = quotes[index],
-                    color = Color.Black,
-                    fontSize = 24.sp,
-                    modifier = Modifier.offset(2.dp, 2.dp)
-                )
-                // 本来のテキスト
-                Text(
-                    text = quotes[index],
-                    color = Color.White,
-                    fontSize = 24.sp
-                )
-            }
+            // 現在のテキストの表示（指の動きに合わせてフェードアウト）
+            Text(
+                text = quotes[currentIndex],
+                color = Color.White,
+                fontSize = 24.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .graphicsLayer(
+                        translationY = dragOffset,  // 指の動きに合わせてテキストを動かす
+                        alpha = 1f - abs(dragOffset) / (screenHeight / 2)  // フェードアウト
+                    )
+            )
+
+            // 次のテキストの表示（フェードインして画面中央に表示）
+            Text(
+                text = quotes[nextIndex],
+                color = Color.White,
+                fontSize = 24.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .graphicsLayer(
+                        translationY = if (dragOffset > 0) dragOffset - screenHeight else dragOffset + screenHeight,  // 新しいテキストは反対側から移動
+                        alpha = abs(dragOffset) / (screenHeight / 2)  // フェードイン
+                    )
+            )
         }
     }
 }

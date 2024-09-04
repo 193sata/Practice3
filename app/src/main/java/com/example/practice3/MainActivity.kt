@@ -48,7 +48,7 @@ fun MainScreen() {
             }
             // ScrollScreenの画面
             composable("scroll_screen") {
-                val scrollScreen = ScrollScreen()
+                val scrollScreen = ScrollImageScreen()
                 scrollScreen.Content()
             }
             // ScrollTextScreenの画面
