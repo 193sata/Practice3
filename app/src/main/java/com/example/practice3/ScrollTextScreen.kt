@@ -3,6 +3,8 @@ package com.example.practice3
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,7 +16,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Text
 import kotlin.math.abs
 
 class ScrollTextScreen {
@@ -51,14 +52,21 @@ class ScrollTextScreen {
         "勇気とは、恐怖に立ち向かう力である。"
     )
 
+    val backgroundImages = listOf(
+        R.drawable.wasitu,
+        R.drawable.beach,
+        R.drawable.bg_screen3
+    )
+
     @Composable
     fun Content() {
         var currentIndex by remember { mutableStateOf(0) }
-        var nextIndex by remember { mutableStateOf((currentIndex + 1) % quotes.size) }  // 次のインデックス
+        var nextIndex by remember { mutableStateOf((currentIndex + 1) % quotes.size) }
         var dragOffset by remember { mutableStateOf(0f) }
-        var scrollDirection by remember { mutableStateOf(0f) }  // スクロールの方向を保存
-        var directionLocked by remember { mutableStateOf(false) }  // 方向が確定したかどうか
-        val screenHeight = 800f  // 仮の画面高さ
+        var scrollDirection by remember { mutableStateOf(0f) }
+        var directionLocked by remember { mutableStateOf(false) }
+        var selectedBackground by remember { mutableStateOf(0) }
+        val screenHeight = 800f
 
         Box(
             modifier = Modifier
@@ -68,10 +76,8 @@ class ScrollTextScreen {
                         onDragEnd = {
                             // 指を離したときに次の文字列に切り替え
                             if (dragOffset > screenHeight / 2) {
-                                // 上にスクロールして次のテキストへ
                                 currentIndex = if (currentIndex > 0) currentIndex - 1 else quotes.size - 1
                             } else if (dragOffset < -screenHeight / 2) {
-                                // 下にスクロールして次のテキストへ
                                 currentIndex = (currentIndex + 1) % quotes.size
                             }
                             dragOffset = 0f  // オフセットをリセット
@@ -81,7 +87,6 @@ class ScrollTextScreen {
                             dragOffset += dragAmount.y  // ドラッグ量をオフセットに反映
 
                             if (!directionLocked) {
-                                // スクロール方向がまだ決定していない場合、方向を決定
                                 scrollDirection = dragAmount.y
                                 nextIndex = if (scrollDirection > 0) {
                                     if (currentIndex > 0) currentIndex - 1 else quotes.size - 1
@@ -97,7 +102,7 @@ class ScrollTextScreen {
         ) {
             // 背景画像の設定
             Image(
-                painter = painterResource(id = R.drawable.bg_screen3),
+                painter = painterResource(id = backgroundImages[selectedBackground]),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -113,8 +118,8 @@ class ScrollTextScreen {
                     .fillMaxWidth()
                     .padding(16.dp)
                     .graphicsLayer(
-                        translationY = dragOffset,  // 指の動きに合わせてテキストを動かす
-                        alpha = 1f - abs(dragOffset) / (screenHeight / 2)  // フェードアウト
+                        translationY = dragOffset,
+                        alpha = 1f - abs(dragOffset) / (screenHeight / 2)
                     )
             )
 
@@ -128,10 +133,23 @@ class ScrollTextScreen {
                     .fillMaxWidth()
                     .padding(16.dp)
                     .graphicsLayer(
-                        translationY = if (dragOffset > 0) dragOffset - screenHeight else dragOffset + screenHeight,  // 新しいテキストは反対側から移動
-                        alpha = abs(dragOffset) / (screenHeight / 2)  // フェードイン
+                        translationY = if (dragOffset > 0) dragOffset - screenHeight else dragOffset + screenHeight,
+                        alpha = abs(dragOffset) / (screenHeight / 2)
                     )
             )
+
+            // 背景画像を切り替えるボタン
+            Button(
+                onClick = {
+                    // 背景画像を切り替える
+                    selectedBackground = (selectedBackground + 1) % backgroundImages.size
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                Text("背景画像を変更")
+            }
         }
     }
 }
